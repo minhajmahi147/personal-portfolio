@@ -1,8 +1,13 @@
+"""Paths and runtime settings for the portfolio API."""
+
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "data" / "messages.db"
+DB_PATH = BASE_DIR / "data" / "portfolio.db"
 DIST_DIR = BASE_DIR.parent / "frontend" / "dist"
+
+SESSION_COOKIE = "portfolio_session"
+SESSION_DAYS = 14
 
 CORS_ORIGINS = [
     "http://localhost:5173",

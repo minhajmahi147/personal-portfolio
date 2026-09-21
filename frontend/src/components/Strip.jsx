@@ -1,7 +1,5 @@
-import { marquee, stats } from "../data.js";
-
-export default function Strip() {
-  const loop = [...marquee, ...marquee];
+export default function Strip({ stats = [], marquee = [] }) {
+  const loop = marquee.length ? [...marquee, ...marquee] : [];
 
   return (
     <>
@@ -15,13 +13,15 @@ export default function Strip() {
           ))}
         </div>
       </div>
-      <div className="marquee" aria-hidden="true">
-        <div className="marquee-track">
-          {loop.map((item, index) => (
-            <span key={`${item}-${index}`}>{item}</span>
-          ))}
+      {loop.length > 0 ? (
+        <div className="marquee" aria-hidden="true">
+          <div className="marquee-track">
+            {loop.map((item, index) => (
+              <span key={`${item}-${index}`}>{item}</span>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
     </>
   );
 }

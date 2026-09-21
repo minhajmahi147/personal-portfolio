@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { education, skillGroups } from "../data.js";
 import SkillMark from "./icon_source.jsx";
 
-export default function Skills() {
+export default function Skills({ skillGroups = [], education }) {
   const [pinned, setPinned] = useState(null);
 
   function track(event) {
@@ -36,45 +35,51 @@ export default function Skills() {
             "Click a tool to pin it."
           )}
         </p>
-        <div className="skill-grid">
-          {skillGroups.map((group) => (
-            <div className="skill-col" key={group.label} onMouseMove={track}>
-              <h3>{group.label}</h3>
-              <ol>
-                {group.items.map((item) => {
-                  const on = pinned?.group === group.label && pinned?.item === item.name;
-                  return (
-                    <li key={item.name}>
-                      <button
-                        type="button"
-                        className={on ? "on" : ""}
-                        aria-pressed={on}
-                        onClick={() => toggle(group.label, item.name)}
-                      >
-                        <SkillMark icon={item.icon} color={item.color} />
-                        {item.name}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          ))}
-        </div>
+        {skillGroups.length ? (
+          <div className="skill-grid">
+            {skillGroups.map((group) => (
+              <div className="skill-col" key={group.label} onMouseMove={track}>
+                <h3>{group.label}</h3>
+                <ol>
+                  {(group.items || []).map((item) => {
+                    const on = pinned?.group === group.label && pinned?.item === item.name;
+                    return (
+                      <li key={item.name}>
+                        <button
+                          type="button"
+                          className={on ? "on" : ""}
+                          aria-pressed={on}
+                          onClick={() => toggle(group.label, item.name)}
+                        >
+                          <SkillMark icon={item.icon} color={item.color} />
+                          {item.name}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="about-copy">Pick skills in the dashboard.</p>
+        )}
 
-        <div className="edu" style={{ marginTop: "2.4rem" }}>
-          <div>
-            <p className="section-label" style={{ marginBottom: 0 }}>
-              05 <span>Education</span>
-            </p>
-            <h3>{education.degree}</h3>
-            <p>{education.school}</p>
+        {education?.degree ? (
+          <div className="edu" style={{ marginTop: "2.4rem" }}>
+            <div>
+              <p className="section-label" style={{ marginBottom: 0 }}>
+                05 <span>Education</span>
+              </p>
+              <h3>{education.degree}</h3>
+              <p>{education.school}</p>
+            </div>
+            <div className="edu-side">
+              {education.period}
+              <b>{education.note}</b>
+            </div>
           </div>
-          <div className="edu-side">
-            {education.period}
-            <b>{education.note}</b>
-          </div>
-        </div>
+        ) : null}
       </div>
     </section>
   );

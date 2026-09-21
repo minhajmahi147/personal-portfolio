@@ -1,6 +1,4 @@
-import { experience } from "../data.js";
-
-export default function Experience() {
+export default function Experience({ experience = [] }) {
   return (
     <section id="path">
       <div className="wrap">
@@ -10,25 +8,29 @@ export default function Experience() {
         <h3 className="display" style={{ marginBottom: "1.6rem" }}>
           Where the work <em>landed.</em>
         </h3>
-        <div className="jobs">
-          {experience.map((job) => (
-            <article className="job" key={job.company}>
-              <div className="when">
-                {job.period}
-                <strong>{job.place}</strong>
-              </div>
-              <div>
-                <h3>{job.role}</h3>
-                <p className="meta">{job.company}</p>
-                <ul>
-                  {job.points.map((point) => (
-                    <li key={point}>{point}</li>
-                  ))}
-                </ul>
-              </div>
-            </article>
-          ))}
-        </div>
+        {experience.length ? (
+          <div className="jobs">
+            {experience.map((job) => (
+              <article className="job" key={`${job.company}-${job.period}`}>
+                <div className="when">
+                  {job.period}
+                  <strong>{job.place}</strong>
+                </div>
+                <div>
+                  <h3>{job.role}</h3>
+                  <p className="meta">{job.company}</p>
+                  <ul>
+                    {(job.points || []).map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="about-copy">Add roles from the dashboard.</p>
+        )}
       </div>
     </section>
   );

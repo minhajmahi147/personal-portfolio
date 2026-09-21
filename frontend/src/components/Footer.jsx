@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { profile } from "../data.js";
 
-export default function Footer() {
+export default function Footer({ profile }) {
   const [live, setLive] = useState("checking");
 
   useEffect(() => {
@@ -22,7 +21,7 @@ export default function Footer() {
     <footer className="footer">
       <div className="wrap footer-inner">
         <span>
-          {profile.name} · {new Date().getFullYear()}
+          {profile?.name || "Portfolio"} · {new Date().getFullYear()}
         </span>
         <span className="live">
           <span className={`dot ${live === "on" ? "on" : live === "off" ? "off" : ""}`} />

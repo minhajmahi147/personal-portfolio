@@ -1,25 +1,24 @@
-import { profile } from "../data.js";
-
-export default function Hero() {
+export default function Hero({ profile, hero }) {
+  const city = profile.location?.split(",").pop()?.trim() || hero.base || "";
   return (
     <section className="hero wrap" id="top">
       <div>
         <p className="kicker reveal">
           <span className="pulse" aria-hidden="true" />
-          {profile.availability} · Dhaka
+          {profile.availability}
+          {city ? ` · ${city}` : ""}
         </p>
         <h1 className="reveal d1">
-          Minhajur
-          <br />
-          Rahman
+          {(hero.nameLines || []).map((line, index) => (
+            <span key={`${line}-${index}`}>
+              {line}
+              <br />
+            </span>
+          ))}
           <br className="break-sm" />
-          <em>Mahi</em>
+          <em>{hero.accent}</em>
         </h1>
-        <p className="lead reveal d2">
-          I build ERP systems and web applications that hold up in daily
-          operations — schema, APIs, workflows, and the screen someone actually
-          clicks.
-        </p>
+        <p className="lead reveal d2">{hero.lead}</p>
         <div className="actions reveal d3">
           <a className="btn" href="#work">
             Selected work
@@ -34,30 +33,31 @@ export default function Hero() {
         <div className="pass-shadow" aria-hidden="true" />
         <div className="pass-card">
           <div className="pass-top">
-            <span>Engineer pass</span>
-            <span>MRM · 26</span>
+            <span>{hero.passLabel}</span>
+            <span>{hero.passTag}</span>
           </div>
           <div className="strip" />
           <div className="sigil" aria-hidden="true">
             <span className="sigil-mark">
-              M<em>R</em>
+              {hero.sigilLeft}
+              <em>{hero.sigilRight}</em>
             </span>
-            <span className="sigil-meta">Dhaka · CSE</span>
+            <span className="sigil-meta">{hero.sigilMeta}</span>
           </div>
-          <h2>Minhajur Rahman Mahi</h2>
-          <p className="pass-role">Full-stack · ERP & web apps</p>
+          <h2>{profile.name || "Your name"}</h2>
+          <p className="pass-role">{hero.passRole || profile.role}</p>
           <div className="pass-rows">
             <div className="pass-row">
               <span>Now</span>
-              <b>Fusion Infotech</b>
+              <b>{hero.now}</b>
             </div>
             <div className="pass-row">
               <span>Focus</span>
-              <b>ERPNext · REST</b>
+              <b>{hero.focus}</b>
             </div>
             <div className="pass-row">
               <span>Base</span>
-              <b>Dhaka</b>
+              <b>{hero.base}</b>
             </div>
           </div>
         </div>

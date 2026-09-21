@@ -1,6 +1,8 @@
-# Minhajur Rahman Mahi — Portfolio
+# Portfolio builder
 
-A single-page portfolio built from the CV. React (Vite) for the site, FastAPI for the contact inbox.
+Multi-tenant portfolios: register → fill the dashboard → publish at `/u/your-slug`.
+
+React (Vite) frontend, FastAPI + SQLite backend.
 
 ## Run it
 
@@ -22,11 +24,21 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. The footer badge turns green when the API is up. Messages are stored in `backend/data/messages.db` (not emailed). From this machine:
+Open http://localhost:5173.
 
-```bash
-curl http://127.0.0.1:8000/api/messages
-```
+### Demo account
+
+- Email: `mahi@demo.local`
+- Password: `mahi1234`
+- Public site: http://localhost:5173/u/mahi
+
+### Flow
+
+1. `/register` — email, password, public slug  
+2. `/dashboard` — profile, hero, work, path, stack, theme, publish  
+3. `/u/:slug` — live portfolio (drafts visible only to the owner while signed in)
+
+Data lives in `backend/data/portfolio.db`. Contact messages are stored per site.
 
 ## One process
 
@@ -36,4 +48,4 @@ cd ../backend && source .venv/bin/activate
 uvicorn main:app --port 8000
 ```
 
-Then open http://127.0.0.1:8000. FastAPI serves the built site and `/api`.
+Then open http://127.0.0.1:8000.

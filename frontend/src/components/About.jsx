@@ -1,24 +1,5 @@
-import { profile } from "../data.js";
-
-const principles = [
-  // {
-  //   k: "01",
-  //   t: "End to end",
-  //   d: "Schema, backend logic, automated workflows, and the interface around them.",
-  // },
-  // {
-  //   k: "02",
-  //   t: "Systems people run",
-  //   d: "Payroll, leave, provident fund, stock, tickets — work that shows up every morning.",
-  // },
-  // {
-  //   k: "03",
-  //   t: "Shipped, not sketched",
-  //   d: "Docker, tests, and API docs so the next person can actually run it.",
-  // },
-];
-
-export default function About() {
+export default function About({ profile, about }) {
+  const principles = about?.principles || [];
   return (
     <section id="about">
       <div className="wrap about-grid">
@@ -27,18 +8,18 @@ export default function About() {
             01 <span>About</span>
           </p>
           <h3 className="display">
-            Close to two years
-            <br />
-            inside <em>real systems.</em>
+            {(about?.headline || []).map((line, index) => (
+              <span key={`${line}-${index}`}>
+                {line}
+                <br />
+              </span>
+            ))}
+            <em>{about?.emphasis}</em>
           </h3>
         </div>
         <div className="about-copy">
-          <p>{profile.summary}</p>
-          <p>
-            Comfortable owning a feature from the table to the approval chain.
-            Most of that work has been ERPNext and Frappe, plus REST APIs and
-            the React or Next.js surfaces in front of them.
-          </p>
+          {profile.summary ? <p>{profile.summary}</p> : null}
+          {about?.secondary ? <p>{about.secondary}</p> : null}
           <div className="principles">
             {principles.map((item) => (
               <article className="principle" key={item.k}>

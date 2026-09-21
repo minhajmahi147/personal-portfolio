@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { profile } from "../data.js";
+import { api } from "../api.js";
 
 const empty = { name: "", email: "", message: "", website: "" };
 
@@ -12,11 +12,12 @@ function readError(data) {
   return "Could not send that message.";
 }
 
-export default function Contact() {
+export default function Contact({ profile, slug }) {
   const [form, setForm] = useState(empty);
   const [status, setStatus] = useState("idle");
   const [note, setNote] = useState("");
   const [copied, setCopied] = useState(false);
+  const links = profile.links || {};
 
   function update(event) {
     const { name, value } = event.target;
@@ -28,13 +29,7 @@ export default function Contact() {
     setStatus("sending");
     setNote("");
     try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(readError(data));
+      await api.contact(slug, form);
       setStatus("sent");
       setNote("Saved. I’ll reply from this inbox.");
       setForm(empty);
@@ -43,13 +38,14 @@ export default function Contact() {
       const offline = error instanceof TypeError;
       setNote(
         offline
-          ? `API isn’t running. Email ${profile.email} directly.`
-          : error.message,
+          ? `API isn’t running. Email ${profile.email || "the owner"} directly.`
+          : error.message || readError(null),
       );
     }
   }
 
   async function copyEmail() {
+    if (!profile.email) return;
     try {
       await navigator.clipboard.writeText(profile.email);
       setCopied(true);
@@ -73,50 +69,62 @@ export default function Contact() {
           </h3>
           <p>
             ERP module, API, or a product that has to survive real use. Send a
-            note — it lands in a local inbox this site’s FastAPI backend keeps.
+            note — it lands in this site’s inbox.
           </p>
           <div className="contact-list">
-            <button className="copy" type="button" onClick={copyEmail}>
-              <span>
-                <small>Email</small>
-                <strong>{profile.email}</strong>
-              </span>
-              <small>{copied ? "Copied" : "Copy"}</small>
-            </button>
-            <a href={`tel:+8801715724712`}>
-              <span>
-                <small>Phone</small>
-                <strong>{profile.phoneDisplay}</strong>
-              </span>
-            </a>
-            <a href={profile.links.github} target="_blank" rel="noreferrer">
-              <span>
-                <small>GitHub</small>
-                <strong>Mahi-markus</strong>
-              </span>
-              <small>↗</small>
-            </a>
-            <a href={profile.links.linkedin} target="_blank" rel="noreferrer">
-              <span>
-                <small>LinkedIn</small>
-                <strong>Minhajur Rahman Mahi</strong>
-              </span>
-              <small>↗</small>
-            </a>
-            <a href={profile.links.leetcode} target="_blank" rel="noreferrer">
-              <span>
-                <small>LeetCode</small>
-                <strong>mrahman61142</strong>
-              </span>
-              <small>↗</small>
-            </a>
-            <a href={profile.links.cv} download>
-              <span>
-                <small>CV</small>
-                <strong>Download PDF</strong>
-              </span>
-              <small>↓</small>
-            </a>
+            {profile.email ? (
+              <button className="copy" type="button" onClick={copyEmail}>
+                <span>
+                  <small>Email</small>
+                  <strong>{profile.email}</strong>
+                </span>
+                <small>{copied ? "Copied" : "Copy"}</small>
+              </button>
+            ) : null}
+            {profile.phoneDisplay ? (
+              <a href={`tel:${profile.phone || profile.phoneDisplay}`}>
+                <span>
+                  <small>Phone</small>
+                  <strong>{profile.phoneDisplay}</strong>
+                </span>
+              </a>
+            ) : null}
+            {links.github ? (
+              <a href={links.github} target="_blank" rel="noreferrer">
+                <span>
+                  <small>GitHub</small>
+                  <strong>{links.github.replace(/^https?:\/\/(www\.)?/, "")}</strong>
+                </span>
+                <small>↗</small>
+              </a>
+            ) : null}
+            {links.linkedin ? (
+              <a href={links.linkedin} target="_blank" rel="noreferrer">
+                <span>
+                  <small>LinkedIn</small>
+                  <strong>{profile.name || "Profile"}</strong>
+                </span>
+                <small>↗</small>
+              </a>
+            ) : null}
+            {links.leetcode ? (
+              <a href={links.leetcode} target="_blank" rel="noreferrer">
+                <span>
+                  <small>LeetCode</small>
+                  <strong>Profile</strong>
+                </span>
+                <small>↗</small>
+              </a>
+            ) : null}
+            {links.cv ? (
+              <a href={links.cv} download>
+                <span>
+                  <small>CV</small>
+                  <strong>Download PDF</strong>
+                </span>
+                <small>↓</small>
+              </a>
+            ) : null}
           </div>
         </div>
 
@@ -169,7 +177,10 @@ export default function Contact() {
           <button className="btn" type="submit" disabled={status === "sending"}>
             {status === "sending" ? "Sending…" : "Send message"}
           </button>
-          <p className={`form-note ${status === "sent" ? "ok" : ""} ${status === "error" ? "bad" : ""}`} role="status">
+          <p
+            className={`form-note ${status === "sent" ? "ok" : ""} ${status === "error" ? "bad" : ""}`}
+            role="status"
+          >
             {note}
           </p>
         </form>

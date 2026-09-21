@@ -1,3 +1,5 @@
+"""FastAPI application factory, lifespan hooks, and optional SPA hosting."""
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -6,23 +8,29 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import CORS_ORIGINS, DIST_DIR
-from app.db import init_db
+from app.db import init_db, seed_demo_if_empty
 from app.routes import router
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """Create the database before the server accepts requests."""
+    """Initialize the database (and demo seed) before serving requests."""
     init_db()
+    seed_demo_if_empty()
     yield
 
 
 def create_app() -> FastAPI:
-    """Build the API, attach CORS, and serve the built site if it exists."""
-    app = FastAPI(title="Mahi Portfolio API", lifespan=lifespan)
+    """Build the API app with CORS, routes, and optional static frontend.
+
+    Returns:
+        Configured :class:`~fastapi.FastAPI` instance.
+    """
+    app = FastAPI(title="Portfolio Builder API", lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=CORS_ORIGINS,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -32,7 +40,11 @@ def create_app() -> FastAPI:
 
 
 def _mount_frontend(app: FastAPI) -> None:
-    """Serve the Vite build so one process can host the site and the API."""
+    """Serve the Vite build so one process can host the site and the API.
+
+    Args:
+        app: Application to mount static assets and the SPA catch-all on.
+    """
     if not DIST_DIR.exists():
         return
 
@@ -42,7 +54,11 @@ def _mount_frontend(app: FastAPI) -> None:
 
     @app.get("/{full_path:path}")
     def spa(full_path: str):
-        """Return a built file, or index.html so client-side routes still work."""
+        """Return a built file, or ``index.html`` for client-side routes.
+
+        Args:
+            full_path: Path after the origin, relative to the dist folder.
+        """
         index = DIST_DIR / "index.html"
         target = (DIST_DIR / full_path).resolve()
         if full_path and target.is_file() and target.is_relative_to(DIST_DIR.resolve()):
