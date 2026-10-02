@@ -73,7 +73,7 @@ export default function LandingPage() {
           Multi-tenant portfolio builder
         </p>
         <h1>
-          Just Fill the dashboard.
+          Justtttttttttttt Fill the dashboard.
           <br />
           And Get <em>your</em> portfolio ready.
         </h1>
