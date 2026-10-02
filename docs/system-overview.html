@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Portfolio Builder — System Overview</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: #1a1f2e;
+      line-height: 1.45;
+      font-size: 11pt;
+      margin: 0;
+      background: #fff;
+    }
+    h1 { font-size: 22pt; margin: 0 0 6px; letter-spacing: -0.02em; }
+    h2 {
+      font-size: 13pt;
+      margin: 22px 0 10px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #1a1f2e;
+      page-break-after: avoid;
+    }
+    h3 { font-size: 11pt; margin: 14px 0 6px; color: #334155; }
+    p, li { margin: 0 0 8px; }
+    .meta { color: #64748b; font-size: 9.5pt; margin-bottom: 18px; }
+    .page-break { page-break-before: always; }
+
+    /* Flow boxes */
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      gap: 8px;
+      margin: 12px 0 16px;
+    }
+    .box {
+      border: 1.5px solid #1a1f2e;
+      border-radius: 8px;
+      padding: 10px 12px;
+      min-width: 120px;
+      flex: 1;
+      background: #f8fafc;
+    }
+    .box strong { display: block; font-size: 10pt; margin-bottom: 4px; }
+    .box span { font-size: 8.5pt; color: #475569; display: block; }
+    .arrow {
+      align-self: center;
+      font-size: 16pt;
+      color: #64748b;
+      flex: 0 0 auto;
+    }
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .layer {
+      border: 1.5px solid #1a1f2e;
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: #f1f5f9;
+    }
+    .layer.fe { background: #e0f2fe; }
+    .layer.api { background: #dcfce7; }
+    .layer.db { background: #fef3c7; }
+    .layer strong { display: block; margin-bottom: 4px; }
+    .layer code { font-size: 8.5pt; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5pt;
+      margin: 8px 0 14px;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #1a1f2e; color: #fff; font-weight: 600; }
+    tr:nth-child(even) td { background: #f8fafc; }
+
+    .swim {
+      border: 1.5px solid #94a3b8;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 10px 0 16px;
+    }
+    .lane {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      border-bottom: 1px solid #cbd5e1;
+    }
+    .lane:last-child { border-bottom: none; }
+    .lane-label {
+      background: #1a1f2e;
+      color: #fff;
+      font-size: 8.5pt;
+      font-weight: 700;
+      padding: 10px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .lane-body {
+      padding: 10px 12px;
+      font-size: 9pt;
+      background: #fff;
+    }
+    .steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .step {
+      background: #f1f5f9;
+      border: 1px solid #94a3b8;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 8.5pt;
+    }
+    .step.hl { background: #dbeafe; border-color: #3b82f6; }
+    .chev { color: #94a3b8; font-size: 11pt; }
+
+    ul.compact { margin: 4px 0 10px; padding-left: 18px; }
+    ul.compact li { margin: 0 0 3px; font-size: 9.5pt; }
+
+    .note {
+      background: #fffbeb;
+      border-left: 3px solid #f59e0b;
+      padding: 8px 10px;
+      font-size: 9pt;
+      margin: 10px 0;
+    }
+    .footer {
+      margin-top: 24px;
+      font-size: 8.5pt;
+      color: #94a3b8;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 8px;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .card {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #f8fafc;
+    }
+    .card h3 { margin-top: 0; }
+  </style>
+</head>
+<body>
+
+  <h1>Portfolio Builder — System Overview</h1>
+  <p class="meta">
+    Multi-tenant portfolio platform · React (Vite) + FastAPI + SQLite ·
+    Generated from codebase at <code>portfolio/</code>
+  </p>
+
+  <h2>1. What the system does</h2>
+  <p>
+    Users register with an email, password, and unique public <strong>slug</strong>.
+    Each account owns <strong>exactly one</strong> site. They edit content in a
+    dashboard, publish it, and visitors open <code>/u/&lt;slug&gt;</code>.
+    Contact forms store messages per site.
+  </p>
+
+  <div class="flow">
+    <div class="box">
+      <strong>1. Register</strong>
+      <span>/register · email + password + slug</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="box">
+      <strong>2. Edit</strong>
+      <span>/dashboard · profile, hero, work…</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="box">
+      <strong>3. Publish</strong>
+      <span>theme + published flag</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="box">
+      <strong>4. Live site</strong>
+      <span>/u/:slug · public portfolio</span>
+    </div>
+  </div>
+
+  <h2>2. Architecture (layers)</h2>
+  <div class="stack">
+    <div class="layer fe">
+      <strong>Frontend — React 19 + Vite + React Router</strong>
+      <code>localhost:5173</code> · Pages: Landing, Login, Register, Dashboard, SitePage<br />
+      Components: Hero, About, Projects, Experience, Skills, Contact, Nav, Footer…<br />
+      Dev proxy: <code>/api → http://127.0.0.1:8001</code> (or 8000)
+    </div>
+    <div class="layer api">
+      <strong>Backend — FastAPI (Uvicorn)</strong>
+      <code>localhost:8000/8001</code> · Router prefix <code>/api</code><br />
+      Modules: <code>main.py</code>, <code>routes.py</code>, <code>auth.py</code>,
+      <code>db.py</code>, <code>schemas.py</code>, <code>config.py</code>
+    </div>
+    <div class="layer db">
+      <strong>Database — SQLite</strong>
+      <code>backend/data/portfolio.db</code><br />
+      Tables: <code>users</code>, <code>sites</code>, <code>sessions</code>, <code>messages</code>
+    </div>
+  </div>
+
+  <h2>3. Auth &amp; identity workflow</h2>
+  <div class="swim">
+    <div class="lane">
+      <div class="lane-label">Browser</div>
+      <div class="lane-body">
+        <div class="steps">
+          <span class="step">POST /api/auth/login</span>
+          <span class="chev">→</span>
+          <span class="step hl">Stores cookie portfolio_session</span>
+          <span class="chev">→</span>
+          <span class="step">Later requests send cookie (credentials: include)</span>
+        </div>
+      </div>
+    </div>
+    <div class="lane">
+      <div class="lane-label">API</div>
+      <div class="lane-body">
+        <div class="steps">
+          <span class="step">verify password</span>
+          <span class="chev">→</span>
+          <span class="step">create_session(user_id)</span>
+          <span class="chev">→</span>
+          <span class="step">Set-Cookie HttpOnly</span>
+          <span class="chev">→</span>
+          <span class="step hl">current_user dependency</span>
+        </div>
+      </div>
+    </div>
+    <div class="lane">
+      <div class="lane-label">SQLite</div>
+      <div class="lane-body">
+        <div class="steps">
+          <span class="step">users</span>
+          <span class="chev">→</span>
+          <span class="step">sessions (token, user_id, expires)</span>
+          <span class="chev">→</span>
+          <span class="step hl">sites WHERE user_id = ?</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    Dashboard does <em>not</em> take a slug from the URL. The session cookie identifies
+    the user; the DB returns that user’s single site (and its slug).
+  </div>
+
+  <div class="page-break"></div>
+
+  <h2>4. End-to-end workflows</h2>
+
+  <h3>A. Registration</h3>
+  <div class="steps" style="margin-bottom:12px">
+    <span class="step">POST /api/auth/register</span>
+    <span class="chev">→</span>
+    <span class="step">create_user</span>
+    <span class="chev">→</span>
+    <span class="step">blank_portfolio + create_site</span>
+    <span class="chev">→</span>
+    <span class="step">session cookie</span>
+    <span class="chev">→</span>
+    <span class="step hl">navigate /dashboard</span>
+  </div>
+
+  <h3>B. Dashboard load &amp; save</h3>
+  <div class="steps" style="margin-bottom:12px">
+    <span class="step">GET /api/dashboard/portfolio</span>
+    <span class="chev">+</span>
+    <span class="step">GET /api/dashboard/messages</span>
+    <span class="chev">→</span>
+    <span class="step">fill React state</span>
+    <span class="chev">→</span>
+    <span class="step">PUT /api/dashboard/portfolio</span>
+    <span class="chev">→</span>
+    <span class="step">PATCH /api/dashboard/settings</span>
+  </div>
+
+  <h3>C. Public site &amp; contact</h3>
+  <div class="steps" style="margin-bottom:12px">
+    <span class="step">/u/:slug</span>
+    <span class="chev">→</span>
+    <span class="step">GET /api/sites/{slug}</span>
+    <span class="chev">→</span>
+    <span class="step">Hero, About, Projects…</span>
+    <span class="chev">→</span>
+    <span class="step">POST /api/sites/{slug}/contact</span>
+    <span class="chev">→</span>
+    <span class="step hl">messages table</span>
+  </div>
+
+  <h2>5. API map</h2>
+  <table>
+    <thead>
+      <tr><th>Method</th><th>Path</th><th>Auth</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>GET</td><td>/api/health</td><td>—</td><td>Liveness</td></tr>
+      <tr><td>POST</td><td>/api/auth/register</td><td>—</td><td>Create user + site + session</td></tr>
+      <tr><td>POST</td><td>/api/auth/login</td><td>—</td><td>Session cookie</td></tr>
+      <tr><td>POST</td><td>/api/auth/logout</td><td>cookie</td><td>Delete session</td></tr>
+      <tr><td>GET</td><td>/api/auth/me</td><td>required</td><td>Current user + site summary</td></tr>
+      <tr><td>GET</td><td>/api/dashboard/portfolio</td><td>required</td><td>Owner portfolio JSON</td></tr>
+      <tr><td>PUT</td><td>/api/dashboard/portfolio</td><td>required</td><td>Save portfolio</td></tr>
+      <tr><td>PATCH</td><td>/api/dashboard/settings</td><td>required</td><td>Theme / published</td></tr>
+      <tr><td>GET</td><td>/api/dashboard/messages</td><td>required</td><td>Inbox for owner site</td></tr>
+      <tr><td>GET</td><td>/api/sites/{slug}</td><td>optional</td><td>Public site (drafts: owner only)</td></tr>
+      <tr><td>POST</td><td>/api/sites/{slug}/contact</td><td>—</td><td>Contact form (honeypot)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6. Data model</h2>
+  <div class="two-col">
+    <div class="card">
+      <h3>users</h3>
+      <ul class="compact">
+        <li><code>id</code>, <code>email</code> (unique)</li>
+        <li><code>password_hash</code> (PBKDF2)</li>
+        <li><code>created_at</code></li>
+      </ul>
+      <h3>sessions</h3>
+      <ul class="compact">
+        <li><code>token</code> PK → cookie value</li>
+        <li><code>user_id</code>, <code>expires_at</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>sites (1 per user)</h3>
+      <ul class="compact">
+        <li><code>user_id</code> UNIQUE · <code>slug</code> UNIQUE</li>
+        <li><code>theme</code> (night | ice)</li>
+        <li><code>published</code> 0/1</li>
+        <li><code>portfolio_json</code> — full document</li>
+      </ul>
+      <h3>messages</h3>
+      <ul class="compact">
+        <li><code>site_id</code>, name, email, message</li>
+        <li><code>created_at</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <h2>7. Portfolio JSON shape (stored in sites.portfolio_json)</h2>
+  <table>
+    <thead>
+      <tr><th>Key</th><th>Used by UI</th><th>Contents</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>profile</td><td>Nav, Hero, Contact, Footer</td><td>name, role, location, email, links…</td></tr>
+      <tr><td>hero</td><td>Hero</td><td>nameLines, accent, lead, pass fields</td></tr>
+      <tr><td>about</td><td>About</td><td>headline, emphasis, secondary</td></tr>
+      <tr><td>stats / marquee</td><td>Strip</td><td>highlight numbers + scrolling tags</td></tr>
+      <tr><td>projects</td><td>Projects</td><td>title, stack, github, live, scene</td></tr>
+      <tr><td>experience</td><td>Experience</td><td>role, company, points</td></tr>
+      <tr><td>skillGroups</td><td>Skills</td><td>grouped skills with icons</td></tr>
+      <tr><td>education</td><td>Skills</td><td>degree, school, period</td></tr>
+    </tbody>
+  </table>
+
+  <h2>8. Frontend routing</h2>
+  <table>
+    <thead>
+      <tr><th>Path</th><th>Page</th><th>Data source</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>/</td><td>LandingPage</td><td>auth context</td></tr>
+      <tr><td>/login</td><td>LoginPage</td><td>POST login → /dashboard</td></tr>
+      <tr><td>/register</td><td>RegisterPage</td><td>POST register → /dashboard</td></tr>
+      <tr><td>/dashboard</td><td>DashboardPage</td><td>session → owner site</td></tr>
+      <tr><td>/u/:slug</td><td>SitePage</td><td>GET sites/{slug} → components</td></tr>
+    </tbody>
+  </table>
+
+  <h2>9. Request path (dev)</h2>
+  <div class="flow">
+    <div class="box">
+      <strong>Browser</strong>
+      <span>fetch("/api/…")</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="box">
+      <strong>Vite :5173</strong>
+      <span>proxy /api</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="box">
+      <strong>Uvicorn :8001</strong>
+      <span>FastAPI routes</span>
+    </div>
+    <div class="arrow">→</div>
+    <div class="box">
+      <strong>SQLite</strong>
+      <span>portfolio.db</span>
+    </div>
+  </div>
+
+  <h2>10. Key constraints</h2>
+  <ul class="compact">
+    <li>One site per user (<code>sites.user_id UNIQUE</code>)</li>
+    <li>Slugs unique globally; 3–32 chars, lowercase, numbers, hyphens</li>
+    <li>Unpublished sites: 404 for public; owner can preview while signed in</li>
+    <li>Contact honeypot field <code>website</code> — if filled, silently discarded</li>
+    <li>Demo seed: <code>mahi@demo.local</code> / <code>mahi1234</code> → <code>/u/mahi</code></li>
+  </ul>
+
+  <h2>11. Module responsibilities</h2>
+  <table>
+    <thead>
+      <tr><th>File</th><th>Role</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>frontend/src/api.js</td><td>HTTP client; credentials include</td></tr>
+      <tr><td>frontend/src/auth.jsx</td><td>AuthProvider; login/register/me state</td></tr>
+      <tr><td>frontend/src/pages/SitePage.jsx</td><td>Load public portfolio; pass props to Hero etc.</td></tr>
+      <tr><td>backend/app/routes.py</td><td>All HTTP endpoints</td></tr>
+      <tr><td>backend/app/auth.py</td><td>Hash/verify password; session cookie; current_user</td></tr>
+      <tr><td>backend/app/db.py</td><td>SQLite CRUD</td></tr>
+      <tr><td>backend/app/schemas.py</td><td>Pydantic validation</td></tr>
+      <tr><td>backend/app/portfolio_default.py</td><td>EMPTY + DEMO portfolio templates</td></tr>
+    </tbody>
+  </table>
+
+  <p class="footer">
+    Portfolio Builder system overview · confidential to local project ·
+    Open <code>docs/system-overview.pdf</code> alongside this HTML source.
+  </p>
+
+</body>
+</html>

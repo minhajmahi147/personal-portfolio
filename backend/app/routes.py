@@ -1,5 +1,11 @@
 """HTTP API routes for auth, dashboard editing, and public sites."""
 
+import hashlib
+import logging
+import secrets
+import smtplib
+from email.message import EmailMessage
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app import db
@@ -12,9 +18,48 @@ from app.auth import (
     optional_user,
     verify_password,
 )
-from app.schemas import ContactIn, LoginIn, PortfolioIn, RegisterIn, SiteSettingsIn
+from app.config import CODE_MINUTES, CODE_RESEND_SECONDS, SMTP_PASSWORD, SMTP_USER, is_admin_email
+from app.schemas import (
+    ContactIn,
+    LoginIn,
+    PortfolioIn,
+    RegisterIn,
+    ResetPasswordIn,
+    SendCodeIn,
+    SiteSettingsIn,
+)
+from app.serializers import parse_portfolio, site_public_dict
 
 router = APIRouter(prefix="/api")
+log = logging.getLogger(__name__)
+
+
+def _hash_code(code: str) -> str:
+    """Return the SHA-256 hex digest stored in place of a raw code."""
+    return hashlib.sha256(code.encode()).hexdigest()
+
+
+def _send_code_email(email: str, code: str) -> None:
+    """Email ``code`` via Gmail SMTP, or log it when SMTP is not configured.
+
+    Raises:
+        HTTPException: 502 if Gmail rejects or cannot be reached.
+    """
+    if not SMTP_USER:
+        log.warning("SMTP not configured; verification code for %s is %s", email, code)
+        return
+    msg = EmailMessage()
+    msg["Subject"] = f"Your verification code: {code}"
+    msg["From"] = SMTP_USER
+    msg["To"] = email
+    msg.set_content(f"Your code is {code}. It expires in {CODE_MINUTES} minutes.")
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as smtp:
+            smtp.login(SMTP_USER, SMTP_PASSWORD)
+            smtp.send_message(msg)
+    except (smtplib.SMTPException, OSError) as exc:
+        log.error("Sending code to %s failed: %s", email, exc)
+        raise HTTPException(status_code=502, detail="Could not send the email") from exc
 
 
 def local_only(request: Request) -> None:
@@ -44,6 +89,7 @@ def _user_payload(user: dict, site) -> dict:
     return {
         "id": user["id"],
         "email": user["email"],
+        "is_admin": is_admin_email(user["email"]),
         "site": {
             "slug": site["slug"],
             "theme": site["theme"],
@@ -58,24 +104,78 @@ def health():
     return {"status": "ok", "service": "portfolio-api"}
 
 
+@router.post("/auth/send-code")
+def send_code(payload: SendCodeIn):
+    """Email a 6-digit code for sign-up or password reset.
+
+    Args:
+        payload: Target email and ``purpose`` (``register`` or ``reset``).
+
+    Returns:
+        ``ok`` once the code is sent.
+
+    Raises:
+        HTTPException: 400/404 if the email does not fit the purpose,
+            429 if a code was sent less than a minute ago, 502 on mail failure.
+    """
+    exists = db.get_user_by_email(payload.email) is not None
+    if payload.purpose == "register" and exists:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    if payload.purpose == "reset" and not exists:
+        raise HTTPException(status_code=404, detail="No account with that email")
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    if not db.save_email_code(payload.email, _hash_code(code)):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Wait {CODE_RESEND_SECONDS} seconds before requesting another code",
+        )
+    _send_code_email(payload.email, code)
+    return {"ok": True}
+
+
+@router.post("/auth/reset-password")
+def reset_password(payload: ResetPasswordIn, response: Response):
+    """Set a new password with an emailed code, sign out other devices, and sign in.
+
+    Args:
+        payload: Email, emailed code, and new password.
+        response: Response used to set the session cookie.
+
+    Returns:
+        ``ok`` plus the user/site summary.
+
+    Raises:
+        HTTPException: 400 if the code is wrong, expired, or the account is gone.
+    """
+    row = db.get_user_by_email(payload.email)
+    if not row or not db.use_email_code(payload.email, _hash_code(payload.code)):
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
+    db.update_password(row["id"], hash_password(payload.password))
+    db.delete_user_sessions(row["id"])
+    create_session(row["id"], response)
+    return {"ok": True, "user": _user_payload(dict(row), db.get_site_by_user(row["id"]))}
+
+
 @router.post("/auth/register", status_code=201)
 def register(payload: RegisterIn, response: Response):
     """Register a new account, create a draft site, and sign the user in.
 
     Args:
-        payload: Email, password, public slug, and optional display name.
+        payload: Email, password, public slug, emailed code, and optional display name.
         response: Response used to set the session cookie.
 
     Returns:
         ``ok`` plus the new user/site summary.
 
     Raises:
-        HTTPException: 400 if the email or slug is already taken.
+        HTTPException: 400 if the email or slug is taken or the code is invalid.
     """
     if db.get_user_by_email(payload.email):
         raise HTTPException(status_code=400, detail="Email already registered")
     if db.slug_taken(payload.slug):
         raise HTTPException(status_code=400, detail="Slug already taken")
+    if not db.use_email_code(payload.email, _hash_code(payload.code)):
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
 
     user_id = db.create_user(payload.email, hash_password(payload.password))
     portfolio = blank_portfolio(email=payload.email, name=payload.name)
@@ -172,7 +272,7 @@ def dashboard_portfolio(user: dict = Depends(current_user)):
         "slug": site["slug"],
         "theme": site["theme"],
         "published": bool(site["published"]),
-        "portfolio": db.parse_portfolio(site),
+        "portfolio": parse_portfolio(site),
     }
 
 
@@ -274,7 +374,7 @@ def public_site(
     is_owner = bool(user and user["id"] == site["user_id"])
     if not site["published"] and not is_owner:
         raise HTTPException(status_code=404, detail="Site not published")
-    data = db.site_public_dict(site)
+    data = site_public_dict(site)
     data["owner"] = is_owner
     return data
 

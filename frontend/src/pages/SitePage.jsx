@@ -41,6 +41,13 @@ export default function SitePage() {
     };
   }, [slug]);
 
+  const font = data?.portfolio?.font;
+  useEffect(() => {
+    if (!font || font === "default") return;
+    document.documentElement.dataset.font = font;
+    return () => delete document.documentElement.dataset.font;
+  }, [font]);
+
   if (loading) {
     return <p className="page-status wrap">Loading site…</p>;
   }

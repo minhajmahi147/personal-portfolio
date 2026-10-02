@@ -1,12 +1,13 @@
 """Pydantic request bodies and field validators for the API."""
 
 import re
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 SLUG = re.compile(r"^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])?$")
+CODE = r"^\d{6}$"
 
 
 class ContactIn(BaseModel):
@@ -43,6 +44,7 @@ class RegisterIn(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     slug: str = Field(min_length=3, max_length=32)
     name: str = Field(default="", max_length=80)
+    code: str = Field(pattern=CODE)
 
     @field_validator("email")
     @classmethod
@@ -82,6 +84,36 @@ class LoginIn(BaseModel):
         return value.strip().lower()
 
 
+class SendCodeIn(BaseModel):
+    """Request a verification code for sign-up or password reset."""
+
+    email: str = Field(max_length=120)
+    purpose: Literal["register", "reset"]
+
+    @field_validator("email")
+    @classmethod
+    def email_ok(cls, value: str) -> str:
+        """Normalize and validate the email."""
+        cleaned = value.strip().lower()
+        if not EMAIL.fullmatch(cleaned):
+            raise ValueError("Enter a valid email")
+        return cleaned
+
+
+class ResetPasswordIn(BaseModel):
+    """Set a new password using an emailed code."""
+
+    email: str = Field(max_length=120)
+    code: str = Field(pattern=CODE)
+    password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("email")
+    @classmethod
+    def email_ok(cls, value: str) -> str:
+        """Strip and lowercase the email."""
+        return value.strip().lower()
+
+
 class PortfolioIn(BaseModel):
     """Body for saving the owner's full portfolio document."""
 
@@ -100,6 +132,6 @@ class SiteSettingsIn(BaseModel):
         """Allow only known theme keys when a theme is provided."""
         if value is None:
             return value
-        if value not in {"night", "ice"}:
-            raise ValueError("Theme must be night or ice")
+        if value not in {"night", "ice", "green", "orange", "blue"}:
+            raise ValueError("Theme must be night, ice, green, orange or blue")
         return value

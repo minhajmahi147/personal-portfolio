@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.admin import router as admin_router
 from app.config import CORS_ORIGINS, DIST_DIR
 from app.db import init_db, seed_demo_if_empty
 from app.routes import router
@@ -35,6 +36,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(router)
+    app.include_router(admin_router)
     _mount_frontend(app)
     return app
 

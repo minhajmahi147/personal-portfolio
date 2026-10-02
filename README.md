@@ -31,12 +31,16 @@ Open http://localhost:5173.
 - Email: `mahi@demo.local`
 - Password: `mahi1234`
 - Public site: http://localhost:5173/u/mahi
+- Admin panel: http://localhost:5173/admin (demo email is admin by default)
+
+Set extra admins with env `ADMIN_EMAILS` (comma-separated), e.g. `ADMIN_EMAILS=mahi@demo.local,you@example.com`.
 
 ### Flow
 
 1. `/register` — email, password, public slug  
 2. `/dashboard` — profile, hero, work, path, stack, theme, publish  
 3. `/u/:slug` — live portfolio (drafts visible only to the owner while signed in)
+4. `/admin` — list all users and sites (admin emails only)
 
 Data lives in `backend/data/portfolio.db`. Contact messages are stored per site.
 

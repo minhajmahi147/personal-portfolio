@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: portfolio-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio
+spec:
+  replicas: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: portfolio
+  template:
+    metadata:
+      labels:
+        app: portfolio
+    spec:
+      containers:
+        - name: portfolio
+          image: portfolio
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: portfolio-smtp
+                optional: true
+          volumeMounts:
+            - name: data
+              mountPath: /app/backend/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: portfolio-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portfolio
+spec:
+  type: NodePort
+  selector:
+    app: portfolio
+  ports:
+    - port: 8000
+      targetPort: 8000

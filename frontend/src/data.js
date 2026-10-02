@@ -100,3 +100,18 @@ export const skillCatalog = [
 ];
 
 export const sceneOptions = ["health", "editorial", "tuition", "radar", "map", "hotel"];
+
+export const themeOptions = [
+  { id: "night", label: "Night" },
+  { id: "ice", label: "White" },
+  { id: "green", label: "Green" },
+  { id: "orange", label: "Orange" },
+  { id: "blue", label: "Blue" },
+];
+
+export const fontOptions = [
+  { id: "default", label: "Syne + Outfit", family: "Syne" },
+  { id: "grotesk", label: "Space Grotesk + Inter", family: "Space Grotesk" },
+  { id: "editorial", label: "Playfair + Source Sans", family: "Playfair Display" },
+  { id: "mono", label: "Space Mono + DM Sans", family: "Space Mono" },
+];

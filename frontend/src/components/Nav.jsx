@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { themeOptions } from "../data.js";
 
 const links = [
   { href: "#about", label: "About" },
@@ -10,7 +11,7 @@ const links = [
 ];
 
 function applyTheme(next) {
-  if (next === "ice") document.documentElement.dataset.theme = "ice";
+  if (next && next !== "night") document.documentElement.dataset.theme = next;
   else delete document.documentElement.dataset.theme;
 }
 
@@ -52,8 +53,11 @@ export default function Nav({ profile, theme = "night", brandMark = "M", onTheme
     return () => window.removeEventListener("scroll", update);
   }, []);
 
+  const alt = theme === "ice" ? "night" : "ice";
+  const next = localTheme === theme ? alt : theme;
+  const nextLabel = themeOptions.find((option) => option.id === next)?.label;
+
   function toggleTheme() {
-    const next = localTheme === "ice" ? "night" : "ice";
     applyTheme(next);
     setLocalTheme(next);
     onThemeChange?.(next);
@@ -71,6 +75,9 @@ export default function Nav({ profile, theme = "night", brandMark = "M", onTheme
         </a>
         <div className="nav-end">
           <nav className={`nav-links ${open ? "open" : ""}`} aria-label="Primary">
+            <Link className="nav-home" to="/" onClick={() => setOpen(false)}>
+              Home
+            </Link>
             {links.map((link) => (
               <a
                 key={link.href}
@@ -91,13 +98,13 @@ export default function Nav({ profile, theme = "night", brandMark = "M", onTheme
             </Link>
           </nav>
           <button
-            className={`theme-btn ${localTheme === "ice" ? "on" : ""}`}
+            className={`theme-btn ${localTheme !== theme ? "on" : ""}`}
             type="button"
-            aria-pressed={localTheme === "ice"}
-            aria-label={localTheme === "ice" ? "Switch to night theme" : "Switch to cool white theme"}
+            aria-pressed={localTheme !== theme}
+            aria-label={`Switch to ${nextLabel} theme`}
             onClick={toggleTheme}
           >
-            {localTheme === "ice" ? "Night" : "White"}
+            {nextLabel}
           </button>
           <button
             className="menu-btn"

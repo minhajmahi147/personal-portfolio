@@ -1,0 +1,55 @@
+sudo usermod -aG docker $USER
+newgrp docker
+
+docker build -t portfolio .
+docker run --rm -p 8000:8000 -v portfolio-data:/app/backend/data portfolio
+
+docker ps
+...........................................
+docker stop vigilant_bassi
+
+kubectl apply -f k8s.yaml
+kubectl get pods
+
+minikube service portfolio
+............................................
+to check docker , kubernetis running or not
+systemctl status docker   # is the Docker service running? Look for "active (running)"
+docker ps                 # which containers are running?
+
+
+minikube status           # is the cluster running?
+kubectl get pods    
+
+to stop docker:
+sudo systemctl stop docker docker.socket.
+##################################
+
+how to start kubernetis:
+
+1. Start Docker. minikube runs inside Docker.
+
+sudo systemctl start docker
+2. Start the cluster.
+
+minikube start
+minikube status        # host, kubelet and apiserver should all say "Running"
+3. Build the image inside minikube's Docker. Your k8s.yaml uses imagePullPolicy: Never, so the image has to exist inside minikube, not just on your laptop.
+
+eval $(minikube docker-env)
+docker build -t portfolio .
+4. Deploy.
+
+kubectl apply -f k8s.yaml
+kubectl get pods       # wait until STATUS is "Running"
+5. Open the site.
+
+minikube service portfolio
+To stop everything afterwards:
+
+minikube stop
+sudo systemctl stop docker docker.socket
+
+
+restart kube
+kubectl rollout restart deployment portfolio

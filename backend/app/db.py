@@ -4,9 +4,9 @@ import json
 import sqlite3
 from contextlib import contextmanager
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from app.config import DB_PATH
+from app.config import CODE_MAX_ATTEMPTS, CODE_MINUTES, CODE_RESEND_SECONDS, DB_PATH
 from app.portfolio_default import DEMO_PORTFOLIO, EMPTY_PORTFOLIO
 
 
@@ -49,6 +49,14 @@ def init_db() -> None:
                 message TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (site_id) REFERENCES sites(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS email_codes (
+                email TEXT PRIMARY KEY,
+                code_hash TEXT NOT NULL,
+                sent_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 0
             );
             """
         )
@@ -229,35 +237,6 @@ def update_site_settings(
             )
 
 
-def parse_portfolio(row: sqlite3.Row) -> dict:
-    """Deserialize ``portfolio_json`` from a site row.
-
-    Args:
-        row: Site row containing ``portfolio_json``.
-
-    Returns:
-        Parsed portfolio dict, or a copy of :data:`EMPTY_PORTFOLIO` if invalid.
-    """
-    try:
-        return json.loads(row["portfolio_json"])
-    except (TypeError, json.JSONDecodeError):
-        return deepcopy(EMPTY_PORTFOLIO)
-
-
-def site_public_dict(row: sqlite3.Row) -> dict:
-    """Build the public site payload (slug, theme, published, portfolio).
-
-    Args:
-        row: Site row from the database.
-    """
-    return {
-        "slug": row["slug"],
-        "theme": row["theme"],
-        "published": bool(row["published"]),
-        "portfolio": parse_portfolio(row),
-    }
-
-
 def create_session(token: str, user_id: int, expires_at: str) -> None:
     """Persist a login session.
 
@@ -304,6 +283,68 @@ def delete_user_sessions(user_id: int) -> None:
     """
     with connect() as conn:
         conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+
+
+def update_password(user_id: int, password_hash: str) -> None:
+    """Replace a user's password hash.
+
+    Args:
+        user_id: Users table id.
+        password_hash: Output of :func:`app.auth.hash_password`.
+    """
+    with connect() as conn:
+        conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
+
+
+def save_email_code(email: str, code_hash: str) -> bool:
+    """Store a fresh verification code for ``email``, replacing any older one.
+
+    Args:
+        email: Normalized email the code was sent to.
+        code_hash: SHA-256 hex digest of the code.
+
+    Returns:
+        False (and stores nothing) if a code was sent less than
+        ``CODE_RESEND_SECONDS`` ago, else True.
+    """
+    now = datetime.now(timezone.utc)
+    with connect() as conn:
+        row = conn.execute("SELECT sent_at FROM email_codes WHERE email = ?", (email,)).fetchone()
+        if row and now - datetime.fromisoformat(row["sent_at"]) < timedelta(seconds=CODE_RESEND_SECONDS):
+            return False
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO email_codes (email, code_hash, sent_at, expires_at, attempts)
+            VALUES (?, ?, ?, ?, 0)
+            """,
+            (email, code_hash, now.isoformat(), (now + timedelta(minutes=CODE_MINUTES)).isoformat()),
+        )
+        return True
+
+
+def use_email_code(email: str, code_hash: str) -> bool:
+    """Check a code for ``email`` and consume it on success.
+
+    Args:
+        email: Normalized email the code was sent to.
+        code_hash: SHA-256 hex digest of the submitted code.
+
+    Returns:
+        True if the code matched and had not expired or run out of attempts.
+    """
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM email_codes WHERE email = ?", (email,)).fetchone()
+        if (
+            not row
+            or row["attempts"] >= CODE_MAX_ATTEMPTS
+            or datetime.fromisoformat(row["expires_at"]) < datetime.now(timezone.utc)
+        ):
+            return False
+        if row["code_hash"] != code_hash:
+            conn.execute("UPDATE email_codes SET attempts = attempts + 1 WHERE email = ?", (email,))
+            return False
+        conn.execute("DELETE FROM email_codes WHERE email = ?", (email,))
+        return True
 
 
 def save_message(
@@ -357,6 +398,52 @@ def list_messages(site_id: int | None = None) -> list[dict]:
                 (site_id,),
             ).fetchall()
     return [dict(row) for row in rows]
+
+
+def list_users_with_sites() -> list[dict]:
+    """List all users with their site summary (for the admin panel).
+
+    Returns:
+        Newest users first. Each item includes nested ``site`` when present.
+    """
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                u.id AS user_id,
+                u.email,
+                u.created_at AS user_created_at,
+                s.id AS site_id,
+                s.slug,
+                s.theme,
+                s.published,
+                s.created_at AS site_created_at,
+                json_extract(s.portfolio_json, '$.profile.name') AS profile_name
+            FROM users u
+            LEFT JOIN sites s ON s.user_id = u.id
+            ORDER BY u.id DESC
+            """
+        ).fetchall()
+
+    result = []
+    for row in rows:
+        item = {
+            "id": row["user_id"],
+            "email": row["email"],
+            "created_at": row["user_created_at"],
+            "site": None,
+        }
+        if row["site_id"] is not None:
+            item["site"] = {
+                "id": row["site_id"],
+                "slug": row["slug"],
+                "theme": row["theme"],
+                "published": bool(row["published"]),
+                "created_at": row["site_created_at"],
+                "profile_name": row["profile_name"] or "",
+            }
+        result.append(item)
+    return result
 
 
 def seed_demo_if_empty() -> None:

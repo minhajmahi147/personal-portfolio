@@ -39,6 +39,11 @@ export function AuthProvider({ children }) {
         setUser(data.user);
         return data.user;
       },
+      async resetPassword(payload) {
+        const data = await api.resetPassword(payload);
+        setUser(data.user);
+        return data.user;
+      },
       async logout() {
         await api.logout();
         setUser(null);

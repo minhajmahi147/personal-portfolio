@@ -30,6 +30,13 @@ export const api = {
   login: (body) =>
     request("/api/auth/login", { method: "POST", body: JSON.stringify(body) }),
   logout: () => request("/api/auth/logout", { method: "POST" }),
+  sendCode: (email, purpose) =>
+    request("/api/auth/send-code", {
+      method: "POST",
+      body: JSON.stringify({ email, purpose }),
+    }),
+  resetPassword: (body) =>
+    request("/api/auth/reset-password", { method: "POST", body: JSON.stringify(body) }),
   getDashboard: () => request("/api/dashboard/portfolio"),
   savePortfolio: (portfolio) =>
     request("/api/dashboard/portfolio", {
@@ -42,6 +49,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
   getMessages: () => request("/api/dashboard/messages"),
+  adminUsers: () => request("/api/admin/users"),
   getSite: (slug) => request(`/api/sites/${encodeURIComponent(slug)}`),
   contact: (slug, body) =>
     request(`/api/sites/${encodeURIComponent(slug)}/contact`, {

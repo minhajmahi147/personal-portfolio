@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
-import { emptyPortfolio, sceneOptions, skillCatalog } from "../data.js";
+import { emptyPortfolio, fontOptions, sceneOptions, skillCatalog, themeOptions } from "../data.js";
 
 const tabs = [
   "Profile",
@@ -238,6 +238,11 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="dash-actions">
+          {user.is_admin ? (
+            <Link className="btn ghost" to="/admin">
+              Admin
+            </Link>
+          ) : null}
           <Link className="btn ghost" to={`/u/${slug}`}>
             View site
           </Link>
@@ -701,20 +706,37 @@ export default function DashboardPage() {
             <div className="dash-card">
               <h3>Theme</h3>
               <div className="dash-actions">
-                <button
-                  type="button"
-                  className={`theme-btn ${theme === "night" ? "on" : ""}`}
-                  onClick={() => setTheme("night")}
-                >
-                  Night
-                </button>
-                <button
-                  type="button"
-                  className={`theme-btn ${theme === "ice" ? "on" : ""}`}
-                  onClick={() => setTheme("ice")}
-                >
-                  White
-                </button>
+                {themeOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`theme-btn ${theme === option.id ? "on" : ""}`}
+                    aria-pressed={theme === option.id}
+                    onClick={() => setTheme(option.id)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="dash-card">
+              <h3>Fonts</h3>
+              <div className="dash-actions">
+                {fontOptions.map((option) => {
+                  const on = (portfolio.font || "default") === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`theme-btn ${on ? "on" : ""}`}
+                      aria-pressed={on}
+                      style={{ fontFamily: option.family }}
+                      onClick={() => setPortfolio((current) => ({ ...current, font: option.id }))}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div className="dash-card">
