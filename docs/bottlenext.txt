@@ -1,4 +1,4 @@
 SQLite under concurrent writes (many people saving at once).
 One machine / one DB file — backups, disk, no horizontal scale.
 No caching — every public page hits the DB for full JSON (still small, but chatty).
-Sessions/messages growing without indexes/cleanup (you already have basic tables).
+Sessions/messages growing without indexes/cleanup (you already have basic tables).kj
